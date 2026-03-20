@@ -230,8 +230,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       </div>
       <div class="week-start-wrap">週の始め
         <select id="week-start-sel" onchange="calChangeWeekStart()">
-          <option value="0">日曜</option>
-          <option value="1" selected>月曜</option>
+          <option value="0" selected>日曜</option>
+          <option value="1">月曜</option>
         </select>
       </div>
     </div>
@@ -689,7 +689,7 @@ function deleteBlock(){if(!editKey)return;var key=editKey.key,idx=editKey.idx;bl
 function saveEdit(){if(!editKey)return;var key=editKey.key,idx=editKey.idx;var b=blocks[key][idx];b.catId=document.getElementById('edit-cat').value;b.memo=document.getElementById('edit-memo').value.trim();var tv=document.getElementById('edit-start').value.split(':');var d=new Date(b.ts);d.setHours(+tv[0]);d.setMinutes(+tv[1]);d.setSeconds(0);b.ts=d.getTime();blocks[key].sort(function(a,b){return a.ts-b.ts;});save('ds_blocks',blocks);editKey=null;closeModal('edit-modal');renderHome();}
 
 /* ── RECORDS ── */
-var recCalYear=new Date().getFullYear(),recCalMonth=new Date().getMonth(),recCalSelDay=new Date().getDate(),recCalWeekStart=1,recCalSelDow=null;
+var recCalYear=new Date().getFullYear(),recCalMonth=new Date().getMonth(),recCalSelDay=new Date().getDate(),recCalWeekStart=0,recCalSelDow=null;
 var clockSegs=[],clockDrawnSegs=[],clockDrawnGaps=[],clockSelectedIdx=null,clockDragging=null,clockLongPressTimer=null,clockLongPressIdx=null,clockIsLongPress=false,clockDidMove=false;
 var clockModalMode='gap',clockPendingGap=null,clockSelCatId='',clockCustomOpen=false;
 var ALL_DOWS_REC=['日','月','火','水','木','金','土'];
