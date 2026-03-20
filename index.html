@@ -262,7 +262,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
       <div id="clock-avg-mode" style="display:none;">
         <div id="avg-badge-wrap" style="margin-bottom:8px;"></div>
         <div style="display:flex;justify-content:center;margin-bottom:6px;">
-          <canvas id="avg-canvas" width="200" height="200" style="display:block;"></canvas>
+          <canvas id="avg-canvas" style="display:block;"></canvas>
         </div>
         <div class="clock-legend" id="avg-legend"></div>
         <div style="height:0.5px;background:var(--border);margin:10px 0;"></div>
@@ -1268,24 +1268,44 @@ function renderDowAverage(){
   // バッジ
   if(badgeWrap)badgeWrap.innerHTML='<span style="display:inline-flex;align-items:center;gap:5px;background:#E1F5EE;color:#0F6E56;font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;"><span style="width:6px;height:6px;border-radius:50%;background:#1D9E75;display:inline-block;"></span>'+DOWS_JP[recCalSelDow]+'曜日の平均（'+matchedKeys.length+'週分）</span>';
 
-  // 平均円グラフ（操作不可）
+  // 平均円グラフ（操作不可・DPR対応）
   var cv=document.getElementById('avg-canvas');
   if(cv){
+    var DPR=window.devicePixelRatio||2;
+    var L=280; // 論理サイズ
+    cv.width=Math.round(L*DPR);cv.height=Math.round(L*DPR);
+    cv.style.width=L+'px';cv.style.height=L+'px';
     var ctx=cv.getContext('2d');
-    var W=200,cx=100,cy2=100,oR=78,iR=44;
-    ctx.clearRect(0,0,W,W);
+    var cx=cv.width/2,cy2=cv.height/2;
+    var oR=cx*0.6875,iR=cx*0.375;
+    function f(size,bold){return(bold?'600 ':'')+Math.round(size*DPR)+'px -apple-system,sans-serif';}
+    ctx.clearRect(0,0,cv.width,cv.height);
     var sa=-Math.PI/2;
     Object.keys(avgMin).forEach(function(cid){
       var cat=catById(cid);var color=cid==='__custom__'||!cat?'#888780':cat.color;var name=cid==='__custom__'?'カスタム':(cat?cat.name:'ラベルなし');
       var sw=avgMin[cid]/total*Math.PI*2;
-      ctx.beginPath();ctx.moveTo(cx,cy2);ctx.arc(cx,cy2,oR,sa,sa+sw);ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+      ctx.beginPath();ctx.moveTo(cx,cy2);ctx.arc(cx,cy2,oR,sa,sa+sw);ctx.closePath();ctx.fillStyle=color;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2*DPR;ctx.stroke();
       var ma=sa+sw/2,mr=(oR+iR)/2,al=sw*oR;
-      if(al>28){var lx=cx+mr*Math.cos(ma),ly=cy2+mr*Math.sin(ma);ctx.font='500 10px -apple-system,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.strokeStyle='rgba(0,0,0,0.7)';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.strokeText(name,lx,ly);ctx.fillStyle='#fff';ctx.fillText(name,lx,ly);}
-      else{var ir=Math.cos(ma)>=0;var x1=cx+(oR+3)*Math.cos(ma),y1=cy2+(oR+3)*Math.sin(ma),x2=cx+(oR+13)*Math.cos(ma),y2r=cy2+(oR+13)*Math.sin(ma);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2r);ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.stroke();ctx.font='10px -apple-system,sans-serif';ctx.textAlign=ir?'left':'right';ctx.textBaseline='middle';ctx.strokeStyle='rgba(255,255,255,0.9)';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.strokeText(name,ir?x2+2:x2-2,y2r);ctx.fillStyle='rgba(30,30,30,0.9)';ctx.fillText(name,ir?x2+2:x2-2,y2r);}
+      // テキスト幅で内側/引き出し線を判定
+      ctx.font=f(11,true);var tw=ctx.measureText(name).width;
+      if(al>tw+14*DPR){
+        var lx=cx+mr*Math.cos(ma),ly=cy2+mr*Math.sin(ma);
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.strokeStyle='rgba(0,0,0,0.75)';ctx.lineWidth=3*DPR;ctx.lineJoin='round';ctx.strokeText(name,lx,ly);ctx.fillStyle='#fff';ctx.fillText(name,lx,ly);
+      } else {
+        var ir=Math.cos(ma)>=0;
+        var x1=cx+(oR+5*DPR)*Math.cos(ma),y1=cy2+(oR+5*DPR)*Math.sin(ma);
+        var x2=cx+(oR+18*DPR)*Math.cos(ma),y2r=cy2+(oR+18*DPR)*Math.sin(ma);
+        var lx2=ir?x2+3*DPR:x2-3*DPR;
+        ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2r);ctx.strokeStyle=color;ctx.lineWidth=1.5*DPR;ctx.stroke();
+        ctx.font=f(11);ctx.textAlign=ir?'left':'right';ctx.textBaseline='middle';
+        ctx.strokeStyle='rgba(255,255,255,0.95)';ctx.lineWidth=3*DPR;ctx.lineJoin='round';ctx.strokeText(name,lx2,y2r);
+        ctx.fillStyle='rgba(30,30,30,0.95)';ctx.fillText(name,lx2,y2r);
+      }
       sa+=sw;
     });
     ctx.beginPath();ctx.arc(cx,cy2,iR,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
-    ctx.font='500 10px -apple-system,sans-serif';ctx.fillStyle='rgba(80,80,80,0.65)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('平均',cx,cy2);
+    ctx.font=f(12,true);ctx.fillStyle='rgba(80,80,80,0.7)';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('平均',cx,cy2);
   }
 
   // 凡例
