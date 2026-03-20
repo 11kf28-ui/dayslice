@@ -1280,7 +1280,7 @@ function savePomoSettings(){pomoCfg={work:+document.getElementById('set-work').v
 /* ALARM REMOVED */
 
 /* ── EXPORT ── */
-function buildExportData(){var allDays=Object.keys(blocks).sort();var result={exportedAt:new Date().toISOString(),categories:categories,days:[]};allDays.forEach(function(key){var dayB=blocks[key]||[];var dayData={date:key,blocks:[]};dayB.forEach(function(b,i){var nextB=dayB[i+1];var durationMin=nextB?Math.round((nextB.ts-b.ts)/60000):null;dayData.blocks.push({time:tsToHHMM(b.ts),category:getBlockName(b),durationMinutes:durationMin,memo:b.memo||''});});result.days.push(dayData);});return result;}
+function buildExportData(){var allDays=Object.keys(blocks).sort();var result={exportedAt:new Date().toISOString(),categories:categories,days:[]};allDays.forEach(function(key){var dayB=blocks[key]||[];var dayData={date:key,rawBlocks:dayB,blocks:[]};dayB.forEach(function(b,i){var nextB=dayB[i+1];var durationMin=nextB?Math.round((nextB.ts-b.ts)/60000):null;dayData.blocks.push({time:tsToHHMM(b.ts),category:getBlockName(b),durationMinutes:durationMin,memo:b.memo||''});});result.days.push(dayData);});return result;}
 function buildExportText(data){var txt='# DaySlice データエクスポート\n';txt+='エクスポート日時: '+new Date().toLocaleString('ja-JP')+'\n\n## カテゴリー\n';data.categories.forEach(function(c){txt+='- '+c.name+'\n';});txt+='\n## 日別記録\n';data.days.forEach(function(d){txt+='\n### '+d.date+'\n';d.blocks.forEach(function(b){txt+=b.time+' '+b.category;if(b.durationMinutes!==null)txt+=' ('+b.durationMinutes+'分)';if(b.memo)txt+=' — '+b.memo;txt+='\n';});});return txt;}
 function exportText(){document.getElementById('export-textarea').value=buildExportText(buildExportData());document.getElementById('export-modal').classList.add('open');}
 function copyExportText(){var ta=document.getElementById('export-textarea');ta.select();try{document.execCommand('copy');}catch(e){navigator.clipboard.writeText(ta.value);}var btn=document.querySelector('#export-modal .primary');btn.textContent='コピーしました！';setTimeout(function(){btn.textContent='コピーする';},2000);}
@@ -1364,7 +1364,21 @@ function doImportWithRange(){
 function doImport(mode){
   if(!pendingImportData)return;
   var data=pendingImportData;
-  if(mode==='replace'&&data.categories){categories=data.categories;save('ds_cats',categories);}
+  if(data.categories&&data.categories.length>0){
+    if(mode==='replace'){
+      categories=data.categories;save('ds_cats',categories);
+    } else {
+      // merge: 既存にないカテゴリーだけ追加
+      var existingIds=categories.map(function(c){return c.id;});
+      var existingNames=categories.map(function(c){return c.name;});
+      data.categories.forEach(function(c){
+        if(existingIds.indexOf(c.id)<0&&existingNames.indexOf(c.name)<0){
+          categories.push(c);
+        }
+      });
+      save('ds_cats',categories);
+    }
+  }
   if(mode==='replace') blocks={};
   data.days.forEach(function(d){
     var key=d.key||d.date;
