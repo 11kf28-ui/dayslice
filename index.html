@@ -1040,8 +1040,9 @@ function initClockEvents(){
     if(!clockDragging)return;
     e.preventDefault();
     var p=getPos(e,0);var cx=getCX(),cy=getCY();var rawMin=angleToMin(Math.atan2(p.y-cy,p.x-cx));var seg=clockSegs[clockDragging.idx];var n=getClockNeighbors(clockDragging.idx);
-    if(clockDragging.handle==='start'){var nm=resolveMin(rawMin,seg.startMin);nm=Math.max(n.prev?n.prev.endMin:0,Math.min(seg.endMin-5,nm));seg.startMin=nm;}
-    else{var nm=resolveMin(rawMin,seg.endMin);nm=Math.max(seg.startMin+5,Math.min(n.next?n.next.startMin:1440,nm));seg.endMin=nm;}
+    var SNAP=5; // 5分スナップ
+    if(clockDragging.handle==='start'){var nm=resolveMin(rawMin,seg.startMin);nm=Math.round(nm/SNAP)*SNAP;nm=Math.max(n.prev?n.prev.endMin:0,Math.min(seg.endMin-SNAP,nm));seg.startMin=nm;}
+    else{var nm=resolveMin(rawMin,seg.endMin);nm=Math.round(nm/SNAP)*SNAP;nm=Math.max(seg.startMin+SNAP,Math.min(n.next?n.next.startMin:1440,nm));seg.endMin=nm;}
     drawClockChart();
   }
   function onUp(e){
