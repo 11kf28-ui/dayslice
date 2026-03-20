@@ -976,7 +976,7 @@ function updateClockSelInfo(){
   var el=document.getElementById('clock-sel-info');if(!el)return;
   if(clockSelectedIdx===null){el.textContent='';return;}
   var seg=clockSegs[clockSelectedIdx];if(!seg){el.textContent='';return;}
-  function mhm(m){m=((m%1440)+1440)%1440;return Math.floor(m/60).toString().padStart(2,'0')+':'+Math.round(m%60).toString().padStart(2,'0');}
+  function mhm(m){m=((m%1440)+1440)%1440;var h=Math.floor(m/60),mn=Math.floor(m%60);if(mn>=60){h++;mn=0;}h=h%24;return h.toString().padStart(2,'0')+':'+mn.toString().padStart(2,'0');}
   el.textContent=(seg.catId==='__custom__'?seg.customName:catById(seg.catId)?catById(seg.catId).name:'ラベルなし')+' '+mhm(seg.startMin)+' 〜 '+mhm(seg.endMin)+'　ハンドルをドラッグ';
 }
 
@@ -1091,7 +1091,7 @@ function initClockEvents(){
 function openClockActionMenu(idx){
   clockLongPressIdx=idx;var seg=clockSegs[idx];
   var cat=catById(seg.catId);var name=seg.catId==='__custom__'?(seg.customName||'カスタム'):(cat?cat.name:'ラベルなし');
-  function mhm(m){m=((m%1440)+1440)%1440;return Math.floor(m/60).toString().padStart(2,'0')+':'+Math.round(m%60).toString().padStart(2,'0');}
+  function mhm(m){m=((m%1440)+1440)%1440;var h=Math.floor(m/60),mn=Math.floor(m%60);if(mn>=60){h++;mn=0;}h=h%24;return h.toString().padStart(2,'0')+':'+mn.toString().padStart(2,'0');}
   document.getElementById('clock-action-title').textContent='「'+name+'」'+mhm(seg.startMin)+'〜'+mhm(seg.endMin);
   document.getElementById('clock-action-menu').style.display='block';
   document.getElementById('clock-action-overlay').style.display='block';
@@ -1128,7 +1128,7 @@ function openClockGapModal(gap){
   var defaultDur=Math.min(120,maxDur);
   clockPendingGap={startMin:gap.startMin,endMin:gap.startMin+defaultDur,gapEndMin:gap.endMin};
   clockSelCatId='';clockCustomOpen=false;
-  function mhm(m){m=((m%1440)+1440)%1440;return Math.floor(m/60).toString().padStart(2,'0')+':'+Math.round(m%60).toString().padStart(2,'0');}
+  function mhm(m){m=((m%1440)+1440)%1440;var h=Math.floor(m/60),mn=Math.floor(m%60);if(mn>=60){h++;mn=0;}h=h%24;return h.toString().padStart(2,'0')+':'+mn.toString().padStart(2,'0');}
   document.getElementById('clock-modal-title').textContent='未記録の時間に追加';
   document.getElementById('clock-modal-sub').textContent=mhm(clockPendingGap.startMin)+' 〜 '+mhm(clockPendingGap.endMin)+'（'+Math.round(clockPendingGap.endMin-clockPendingGap.startMin)+'分）';
   document.getElementById('clock-modal-save-btn').textContent='追加する';
