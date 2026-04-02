@@ -168,6 +168,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .diary-textarea:focus{border-color:var(--accent);}
 .diary-saved{font-size:11px;color:var(--accent);opacity:0;transition:opacity .3s;}
 .diary-saved.show{opacity:1;}
+.diary-photos{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+.diary-photo-wrap{position:relative;width:80px;height:80px;border-radius:var(--rm);overflow:hidden;border:0.5px solid var(--border);}
+.diary-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block;cursor:pointer;}
+.diary-photo-del{position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;line-height:1;}
+.diary-add-photo{width:80px;height:80px;border-radius:var(--rm);border:1.5px dashed var(--border2);background:transparent;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--text3);font-size:18px;transition:border-color .15s;}
+.diary-add-photo:hover{border-color:var(--accent);color:var(--accent);}
+.diary-add-photo span{font-size:10px;}
+.diary-photo-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center;z-index:10000;cursor:pointer;}
+.diary-photo-modal-overlay.open{display:flex;}
+.diary-photo-modal-overlay img{max-width:95%;max-height:90%;object-fit:contain;border-radius:8px;}
 /* MODAL */
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:9999;}
 .modal-overlay.open{display:flex;}
@@ -310,7 +320,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <span class="diary-saved" id="diary-saved">保存しました</span>
       </div>
       <textarea class="diary-textarea" id="diary-textarea" placeholder="今日のひとこと…" oninput="onDiaryInput()"></textarea>
+      <div class="diary-photos" id="diary-photos"></div>
+      <input type="file" id="diary-photo-input" accept="image/*" multiple style="display:none;" onchange="handleDiaryPhotos(this)">
     </div>
+  </div>
+
+  <!-- Photo viewer -->
+  <div class="diary-photo-modal-overlay" id="diary-photo-viewer" onclick="this.classList.remove('open')">
+    <img id="diary-photo-viewer-img" src="">
   </div>
 
   <!-- SETTINGS -->
@@ -1447,7 +1464,7 @@ function savePomoSettings(){pomoCfg={work:+document.getElementById('set-work').v
 /* ALARM REMOVED */
 
 /* ── EXPORT ── */
-function buildExportData(){var allDays=Object.keys(blocks).sort();var result={exportedAt:new Date().toISOString(),categories:categories,diary:diaryData,todos:todos,days:[]};allDays.forEach(function(key){var dayB=blocks[key]||[];var dayData={date:key,rawBlocks:dayB,blocks:[],diary:diaryData[key]||''};dayB.forEach(function(b,i){var nextB=dayB[i+1];var durationMin=nextB?Math.round((nextB.ts-b.ts)/60000):null;dayData.blocks.push({time:tsToHHMM(b.ts),category:getBlockName(b),durationMinutes:durationMin,memo:b.memo||''});});result.days.push(dayData);});return result;}
+function buildExportData(){var allDays=Object.keys(blocks).sort();var result={exportedAt:new Date().toISOString(),categories:categories,diary:diaryData,diaryPhotos:diaryPhotos,todos:todos,days:[]};allDays.forEach(function(key){var dayB=blocks[key]||[];var dayData={date:key,rawBlocks:dayB,blocks:[],diary:diaryData[key]||''};dayB.forEach(function(b,i){var nextB=dayB[i+1];var durationMin=nextB?Math.round((nextB.ts-b.ts)/60000):null;dayData.blocks.push({time:tsToHHMM(b.ts),category:getBlockName(b),durationMinutes:durationMin,memo:b.memo||''});});result.days.push(dayData);});return result;}
 function buildExportText(data){var txt='# DaySlice データエクスポート\n';txt+='エクスポート日時: '+new Date().toLocaleString('ja-JP')+'\n\n## カテゴリー\n';data.categories.forEach(function(c){txt+='- '+c.name+'\n';});txt+='\n## 日別記録\n';data.days.forEach(function(d){txt+='\n### '+d.date+'\n';d.blocks.forEach(function(b){txt+=b.time+' '+b.category;if(b.durationMinutes!==null)txt+=' ('+b.durationMinutes+'分)';if(b.memo)txt+=' — '+b.memo;txt+='\n';});if(d.diary)txt+='\n日記: '+d.diary+'\n';});return txt;}
 function exportText(){document.getElementById('export-textarea').value=buildExportText(buildExportData());document.getElementById('export-modal').classList.add('open');}
 function copyExportText(){var ta=document.getElementById('export-textarea');ta.select();try{document.execCommand('copy');}catch(e){navigator.clipboard.writeText(ta.value);}var btn=document.querySelector('#export-modal .primary');btn.textContent='コピーしました！';setTimeout(function(){btn.textContent='コピーする';},2000);}
@@ -1604,6 +1621,18 @@ function doImport(mode){
     data.days.forEach(function(d){var key=d.key||d.date;if(d.diary){if(mode==='merge'){if(!diaryData[key])diaryData[key]=d.diary;}else{diaryData[key]=d.diary;}}});
   }
   save('ds_diary',diaryData);
+  // 写真データのインポート
+  if(data.diaryPhotos){
+    if(mode==='replace')diaryPhotos={};
+    Object.keys(data.diaryPhotos).forEach(function(k){
+      var fromVal=document.getElementById('import-date-from')?document.getElementById('import-date-from').value:'';
+      var toVal=document.getElementById('import-date-to')?document.getElementById('import-date-to').value:'';
+      if(fromVal&&k<fromVal)return;if(toVal&&k>toVal)return;
+      if(mode==='merge'){if(!diaryPhotos[k])diaryPhotos[k]=data.diaryPhotos[k];}
+      else{diaryPhotos[k]=data.diaryPhotos[k];}
+    });
+    save('ds_diary_photos',diaryPhotos);
+  }
   // Todoデータのインポート
   if(data.todos&&Array.isArray(data.todos)){
     if(mode==='replace'){todos=data.todos;}
@@ -1664,12 +1693,14 @@ function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(
 
 /* ── DIARY ── */
 var diaryData=load('ds_diary',{});
+var diaryPhotos=load('ds_diary_photos',{});
 var diarySaveTimer=null;
 function getDiaryKey(){return fmtKey(recCalYear,recCalMonth,recCalSelDay);}
 function renderDiary(){
   var ta=document.getElementById('diary-textarea');if(!ta)return;
   var key=getDiaryKey();
   ta.value=diaryData[key]||'';
+  renderDiaryPhotos();
 }
 function onDiaryInput(){
   if(diarySaveTimer)clearTimeout(diarySaveTimer);
@@ -1681,8 +1712,80 @@ function saveDiary(){
   var val=ta.value.trim();
   if(val){diaryData[key]=val;}else{delete diaryData[key];}
   save('ds_diary',diaryData);
+  showDiarySaved();
+}
+function showDiarySaved(){
   var el=document.getElementById('diary-saved');
   if(el){el.classList.add('show');setTimeout(function(){el.classList.remove('show');},1500);}
+}
+function renderDiaryPhotos(){
+  var container=document.getElementById('diary-photos');if(!container)return;
+  var key=getDiaryKey();
+  var photos=diaryPhotos[key]||[];
+  var html='';
+  photos.forEach(function(src,i){
+    html+='<div class="diary-photo-wrap">';
+    html+='<img src="'+src+'" onclick="viewDiaryPhoto('+i+')">';
+    html+='<button class="diary-photo-del" onclick="deleteDiaryPhoto('+i+')">✕</button>';
+    html+='</div>';
+  });
+  html+='<button class="diary-add-photo" onclick="document.getElementById(\'diary-photo-input\').click()">+<span>写真</span></button>';
+  container.innerHTML=html;
+}
+function handleDiaryPhotos(input){
+  var files=input.files;if(!files||!files.length)return;
+  var key=getDiaryKey();
+  if(!diaryPhotos[key])diaryPhotos[key]=[];
+  var pending=files.length;
+  for(var i=0;i<files.length;i++){
+    (function(file){
+      var reader=new FileReader();
+      reader.onload=function(e){
+        resizeDiaryImage(e.target.result,800,function(resized){
+          diaryPhotos[key].push(resized);
+          pending--;
+          if(pending===0){
+            save('ds_diary_photos',diaryPhotos);
+            renderDiaryPhotos();showDiarySaved();
+          }
+        });
+      };
+      reader.readAsDataURL(file);
+    })(files[i]);
+  }
+  input.value='';
+}
+function resizeDiaryImage(dataUrl,maxSize,cb){
+  var img=new Image();
+  img.onload=function(){
+    var w=img.width,h=img.height;
+    if(w>maxSize||h>maxSize){
+      if(w>h){h=Math.round(h*maxSize/w);w=maxSize;}
+      else{w=Math.round(w*maxSize/h);h=maxSize;}
+    }
+    var canvas=document.createElement('canvas');
+    canvas.width=w;canvas.height=h;
+    var ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,w,h);
+    cb(canvas.toDataURL('image/jpeg',0.7));
+  };
+  img.src=dataUrl;
+}
+function deleteDiaryPhoto(i){
+  var key=getDiaryKey();
+  if(!diaryPhotos[key])return;
+  diaryPhotos[key].splice(i,1);
+  if(diaryPhotos[key].length===0)delete diaryPhotos[key];
+  save('ds_diary_photos',diaryPhotos);
+  renderDiaryPhotos();showDiarySaved();
+}
+function viewDiaryPhoto(i){
+  var key=getDiaryKey();
+  var photos=diaryPhotos[key]||[];
+  if(i<0||i>=photos.length)return;
+  var viewer=document.getElementById('diary-photo-viewer');
+  var img=document.getElementById('diary-photo-viewer-img');
+  if(viewer&&img){img.src=photos[i];viewer.classList.add('open');}
 }
 
 /* ── INIT ── */
