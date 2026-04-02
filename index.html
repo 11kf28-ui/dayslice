@@ -34,10 +34,27 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .pomo-inline-item{display:flex;flex-direction:column;gap:3px;flex:1;}
 .pomo-inline-item label{font-size:10px;color:var(--text3);text-align:center;}
 .pomo-inline-item input{padding:5px 6px;font-size:13px;text-align:center;border:0.5px solid var(--border);border-radius:var(--rm);background:var(--bg);color:var(--text);width:100%;}
-.big-btn{width:170px;height:170px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 32px rgba(29,158,117,.3);transition:transform .12s;-webkit-user-select:none;user-select:none;}
-.big-btn:active{transform:scale(0.94);}
-.big-btn .icon{font-size:40px;line-height:1;}
-.big-btn .label{font-size:14px;font-weight:600;color:#fff;}
+/* TODO LIST */
+.todo-card{background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:14px 16px;width:100%;}
+.todo-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.todo-card-title{font-size:11px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;}
+.todo-card-count{font-size:11px;color:var(--text3);}
+.todo-list{display:flex;flex-direction:column;gap:4px;margin-bottom:10px;}
+.todo-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);}
+.todo-item:last-child{border-bottom:none;}
+.todo-cb{width:20px;height:20px;border-radius:50%;border:2px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;margin-top:1px;padding:0;}
+.todo-cb.done{background:var(--accent);border-color:var(--accent);}
+.todo-cb .todo-ck{font-size:11px;color:#fff;display:none;}
+.todo-cb.done .todo-ck{display:block;}
+.todo-text{flex:1;font-size:14px;color:var(--text);line-height:1.5;word-break:break-word;}
+.todo-text.done{text-decoration:line-through;color:var(--text3);}
+.todo-del{background:none;border:none;cursor:pointer;font-size:14px;color:var(--text3);padding:2px 4px;flex-shrink:0;opacity:0.5;transition:opacity .15s;}
+.todo-del:hover{opacity:1;color:var(--danger);}
+.todo-add-row{display:flex;gap:8px;}
+.todo-add-input{flex:1;padding:9px 12px;font-size:14px;border:0.5px solid var(--border);border-radius:var(--rm);background:var(--bg);color:var(--text);font-family:inherit;outline:none;}
+.todo-add-input:focus{border-color:var(--accent);}
+.todo-add-btn{padding:9px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--rm);font-size:13px;font-weight:500;cursor:pointer;}
+.todo-empty{text-align:center;color:var(--text3);font-size:13px;padding:12px 0;}
 .current-block{width:100%;background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);padding:14px 16px;}
 .cb-label{font-size:11px;color:var(--text3);margin-bottom:4px;}
 .cb-name{font-size:18px;font-weight:500;color:var(--text);}
@@ -201,10 +218,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
   <!-- HOME -->
   <div class="screen active" id="screen-home">
     <div class="home-wrap">
-      <button class="big-btn" onclick="handleSlice()">
-        <div class="icon">⏱</div>
-        <div class="label">時間を記録</div>
-      </button>
+      <div class="todo-card" id="todo-card">
+        <div class="todo-card-header">
+          <span class="todo-card-title">やることリスト</span>
+          <span class="todo-card-count" id="todo-count"></span>
+        </div>
+        <div class="todo-list" id="todo-list"></div>
+        <div class="todo-add-row">
+          <input class="todo-add-input" id="todo-input" placeholder="新しいタスク…" onkeydown="if(event.key==='Enter')addTodo()">
+          <button class="todo-add-btn" onclick="addTodo()">追加</button>
+        </div>
+      </div>
       <div class="pomo-card" id="pomo-card-wrap">
         <div class="pomo-card-header">
           <span class="pomo-card-title">ポモドーロ</span>
@@ -1423,7 +1447,7 @@ function savePomoSettings(){pomoCfg={work:+document.getElementById('set-work').v
 /* ALARM REMOVED */
 
 /* ── EXPORT ── */
-function buildExportData(){var allDays=Object.keys(blocks).sort();var result={exportedAt:new Date().toISOString(),categories:categories,diary:diaryData,days:[]};allDays.forEach(function(key){var dayB=blocks[key]||[];var dayData={date:key,rawBlocks:dayB,blocks:[],diary:diaryData[key]||''};dayB.forEach(function(b,i){var nextB=dayB[i+1];var durationMin=nextB?Math.round((nextB.ts-b.ts)/60000):null;dayData.blocks.push({time:tsToHHMM(b.ts),category:getBlockName(b),durationMinutes:durationMin,memo:b.memo||''});});result.days.push(dayData);});return result;}
+function buildExportData(){var allDays=Object.keys(blocks).sort();var result={exportedAt:new Date().toISOString(),categories:categories,diary:diaryData,todos:todos,days:[]};allDays.forEach(function(key){var dayB=blocks[key]||[];var dayData={date:key,rawBlocks:dayB,blocks:[],diary:diaryData[key]||''};dayB.forEach(function(b,i){var nextB=dayB[i+1];var durationMin=nextB?Math.round((nextB.ts-b.ts)/60000):null;dayData.blocks.push({time:tsToHHMM(b.ts),category:getBlockName(b),durationMinutes:durationMin,memo:b.memo||''});});result.days.push(dayData);});return result;}
 function buildExportText(data){var txt='# DaySlice データエクスポート\n';txt+='エクスポート日時: '+new Date().toLocaleString('ja-JP')+'\n\n## カテゴリー\n';data.categories.forEach(function(c){txt+='- '+c.name+'\n';});txt+='\n## 日別記録\n';data.days.forEach(function(d){txt+='\n### '+d.date+'\n';d.blocks.forEach(function(b){txt+=b.time+' '+b.category;if(b.durationMinutes!==null)txt+=' ('+b.durationMinutes+'分)';if(b.memo)txt+=' — '+b.memo;txt+='\n';});if(d.diary)txt+='\n日記: '+d.diary+'\n';});return txt;}
 function exportText(){document.getElementById('export-textarea').value=buildExportText(buildExportData());document.getElementById('export-modal').classList.add('open');}
 function copyExportText(){var ta=document.getElementById('export-textarea');ta.select();try{document.execCommand('copy');}catch(e){navigator.clipboard.writeText(ta.value);}var btn=document.querySelector('#export-modal .primary');btn.textContent='コピーしました！';setTimeout(function(){btn.textContent='コピーする';},2000);}
@@ -1580,10 +1604,17 @@ function doImport(mode){
     data.days.forEach(function(d){var key=d.key||d.date;if(d.diary){if(mode==='merge'){if(!diaryData[key])diaryData[key]=d.diary;}else{diaryData[key]=d.diary;}}});
   }
   save('ds_diary',diaryData);
+  // Todoデータのインポート
+  if(data.todos&&Array.isArray(data.todos)){
+    if(mode==='replace'){todos=data.todos;}
+    else{var existIds=todos.map(function(t){return t.id;});data.todos.forEach(function(t){if(existIds.indexOf(t.id)<0)todos.push(t);});}
+    save('ds_todos',todos);
+  }
   pendingImportData=null;
   closeModal('import-modal');
   showImportResult('success',mode==='merge'?'統合完了！データを追加しました。':'置き換え完了！データを復元しました。');
   renderHome();
+  renderTodos();
   renderRecordsScreen();
 }
 function showImportResult(type,msg){
@@ -1594,6 +1625,42 @@ function showImportResult(type,msg){
   el.textContent=msg;
   setTimeout(function(){el.style.display='none';},4000);
 }
+
+/* ── TODO ── */
+var todos=load('ds_todos',[]);
+function renderTodos(){
+  var list=document.getElementById('todo-list');var cnt=document.getElementById('todo-count');
+  if(!list)return;
+  var done=todos.filter(function(t){return t.done;}).length;
+  if(cnt)cnt.textContent=done+'/'+todos.length+'完了';
+  if(todos.length===0){list.innerHTML='<div class="todo-empty">タスクはありません</div>';return;}
+  var html='';
+  todos.forEach(function(t,i){
+    html+='<div class="todo-item">';
+    html+='<button class="todo-cb'+(t.done?' done':'')+'" onclick="toggleTodo('+i+')"><span class="todo-ck">✓</span></button>';
+    html+='<span class="todo-text'+(t.done?' done':'')+'">'+escHtml(t.text)+'</span>';
+    html+='<button class="todo-del" onclick="deleteTodo('+i+')">✕</button>';
+    html+='</div>';
+  });
+  list.innerHTML=html;
+}
+function addTodo(){
+  var input=document.getElementById('todo-input');if(!input)return;
+  var text=input.value.trim();if(!text)return;
+  todos.push({text:text,done:false,id:Date.now()});
+  save('ds_todos',todos);input.value='';renderTodos();
+}
+function toggleTodo(i){
+  if(i<0||i>=todos.length)return;
+  todos[i].done=!todos[i].done;
+  save('ds_todos',todos);renderTodos();
+}
+function deleteTodo(i){
+  if(i<0||i>=todos.length)return;
+  todos.splice(i,1);
+  save('ds_todos',todos);renderTodos();
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
 /* ── DIARY ── */
 var diaryData=load('ds_diary',{});
@@ -1620,6 +1687,7 @@ function saveDiary(){
 
 /* ── INIT ── */
 renderHome();
+renderTodos();
 renderPomo();
 document.getElementById('h-set-work').value=pomoCfg.work;
 document.getElementById('h-set-short').value=pomoCfg.short;
