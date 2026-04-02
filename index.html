@@ -142,6 +142,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
 .pomo-set-item label{font-size:11px;color:var(--text3);}
 .pomo-set-item input{padding:8px 10px;font-size:14px;text-align:center;border:0.5px solid var(--border);border-radius:var(--rm);background:var(--bg2);color:var(--text);}
 .empty-state{text-align:center;color:var(--text3);padding:40px 0;font-size:14px;}
+/* DIARY */
+.diary-section{margin-top:14px;padding-top:14px;border-top:0.5px solid var(--border);}
+.diary-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.diary-title{font-size:11px;color:var(--text3);letter-spacing:.04em;text-transform:uppercase;}
+.diary-date{font-size:11px;color:var(--text3);}
+.diary-textarea{width:100%;min-height:100px;padding:10px 12px;font-size:14px;line-height:1.6;border:0.5px solid var(--border);border-radius:var(--rm);background:var(--bg2);color:var(--text);font-family:inherit;resize:vertical;outline:none;transition:border-color .15s;}
+.diary-textarea:focus{border-color:var(--accent);}
+.diary-saved{font-size:11px;color:var(--accent);opacity:0;transition:opacity .3s;}
+.diary-saved.show{opacity:1;}
 /* MODAL */
 .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;justify-content:center;z-index:9999;}
 .modal-overlay.open{display:flex;}
@@ -269,6 +278,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
         <div class="bar-total" id="avg-bar-total"></div>
         <div id="avg-bar-content"></div>
       </div>
+    </div>
+    <!-- 日記 -->
+    <div class="diary-section" id="diary-section">
+      <div class="diary-header">
+        <span class="diary-title">日記</span>
+        <span class="diary-saved" id="diary-saved">保存しました</span>
+      </div>
+      <textarea class="diary-textarea" id="diary-textarea" placeholder="今日のひとこと…" oninput="onDiaryInput()"></textarea>
     </div>
   </div>
 
@@ -713,6 +730,7 @@ function renderRecordsScreen(){
   buildClockSegs();
   drawClockChart();
   renderSubTab();
+  renderDiary();
 }
 
 function calNavMonth(d){recCalMonth+=d;if(recCalMonth>11){recCalMonth=0;recCalYear++;}if(recCalMonth<0){recCalMonth=11;recCalYear--;}renderCalGrid();}
@@ -762,6 +780,7 @@ function calSelectDay(d){
   buildClockSegs();
   drawClockChart();
   renderSubTab();
+  renderDiary();
   // 通常モードに戻す
   var nm=document.getElementById('clock-normal-mode');var am=document.getElementById('clock-avg-mode');
   if(nm)nm.style.display='block';if(am)am.style.display='none';
@@ -1232,8 +1251,9 @@ function renderDowAverage(){
   var nm=document.getElementById('clock-normal-mode');
   var am=document.getElementById('clock-avg-mode');
   if(!am)return;
-  if(recCalSelDow===null){if(nm)nm.style.display='block';am.style.display='none';return;}
-  if(nm)nm.style.display='none';am.style.display='block';
+  var ds=document.getElementById('diary-section');
+  if(recCalSelDow===null){if(nm)nm.style.display='block';am.style.display='none';if(ds)ds.style.display='block';return;}
+  if(nm)nm.style.display='none';am.style.display='block';if(ds)ds.style.display='none';
 
   var DOWS_JP=['日','月','火','水','木','金','土'];
   // 同じ曜日のデータを収集
@@ -1403,8 +1423,8 @@ function savePomoSettings(){pomoCfg={work:+document.getElementById('set-work').v
 /* ALARM REMOVED */
 
 /* ── EXPORT ── */
-function buildExportData(){var allDays=Object.keys(blocks).sort();var result={exportedAt:new Date().toISOString(),categories:categories,days:[]};allDays.forEach(function(key){var dayB=blocks[key]||[];var dayData={date:key,rawBlocks:dayB,blocks:[]};dayB.forEach(function(b,i){var nextB=dayB[i+1];var durationMin=nextB?Math.round((nextB.ts-b.ts)/60000):null;dayData.blocks.push({time:tsToHHMM(b.ts),category:getBlockName(b),durationMinutes:durationMin,memo:b.memo||''});});result.days.push(dayData);});return result;}
-function buildExportText(data){var txt='# DaySlice データエクスポート\n';txt+='エクスポート日時: '+new Date().toLocaleString('ja-JP')+'\n\n## カテゴリー\n';data.categories.forEach(function(c){txt+='- '+c.name+'\n';});txt+='\n## 日別記録\n';data.days.forEach(function(d){txt+='\n### '+d.date+'\n';d.blocks.forEach(function(b){txt+=b.time+' '+b.category;if(b.durationMinutes!==null)txt+=' ('+b.durationMinutes+'分)';if(b.memo)txt+=' — '+b.memo;txt+='\n';});});return txt;}
+function buildExportData(){var allDays=Object.keys(blocks).sort();var result={exportedAt:new Date().toISOString(),categories:categories,diary:diaryData,days:[]};allDays.forEach(function(key){var dayB=blocks[key]||[];var dayData={date:key,rawBlocks:dayB,blocks:[],diary:diaryData[key]||''};dayB.forEach(function(b,i){var nextB=dayB[i+1];var durationMin=nextB?Math.round((nextB.ts-b.ts)/60000):null;dayData.blocks.push({time:tsToHHMM(b.ts),category:getBlockName(b),durationMinutes:durationMin,memo:b.memo||''});});result.days.push(dayData);});return result;}
+function buildExportText(data){var txt='# DaySlice データエクスポート\n';txt+='エクスポート日時: '+new Date().toLocaleString('ja-JP')+'\n\n## カテゴリー\n';data.categories.forEach(function(c){txt+='- '+c.name+'\n';});txt+='\n## 日別記録\n';data.days.forEach(function(d){txt+='\n### '+d.date+'\n';d.blocks.forEach(function(b){txt+=b.time+' '+b.category;if(b.durationMinutes!==null)txt+=' ('+b.durationMinutes+'分)';if(b.memo)txt+=' — '+b.memo;txt+='\n';});if(d.diary)txt+='\n日記: '+d.diary+'\n';});return txt;}
 function exportText(){document.getElementById('export-textarea').value=buildExportText(buildExportData());document.getElementById('export-modal').classList.add('open');}
 function copyExportText(){var ta=document.getElementById('export-textarea');ta.select();try{document.execCommand('copy');}catch(e){navigator.clipboard.writeText(ta.value);}var btn=document.querySelector('#export-modal .primary');btn.textContent='コピーしました！';setTimeout(function(){btn.textContent='コピーする';},2000);}
 function exportJSON(){var data=buildExportData();var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='dayslice-'+todayKey()+'.json';a.click();URL.revokeObjectURL(url);}
@@ -1546,6 +1566,20 @@ function doImport(mode){
     }
   });
   save('ds_blocks',blocks);
+  // 日記データのインポート
+  if(data.diary){
+    if(mode==='replace')diaryData={};
+    Object.keys(data.diary).forEach(function(k){
+      var fromVal=document.getElementById('import-date-from')?document.getElementById('import-date-from').value:'';
+      var toVal=document.getElementById('import-date-to')?document.getElementById('import-date-to').value:'';
+      if(fromVal&&k<fromVal)return;if(toVal&&k>toVal)return;
+      if(mode==='merge'){if(!diaryData[k])diaryData[k]=data.diary[k];}
+      else{diaryData[k]=data.diary[k];}
+    });
+  } else {
+    data.days.forEach(function(d){var key=d.key||d.date;if(d.diary){if(mode==='merge'){if(!diaryData[key])diaryData[key]=d.diary;}else{diaryData[key]=d.diary;}}});
+  }
+  save('ds_diary',diaryData);
   pendingImportData=null;
   closeModal('import-modal');
   showImportResult('success',mode==='merge'?'統合完了！データを追加しました。':'置き換え完了！データを復元しました。');
@@ -1559,6 +1593,29 @@ function showImportResult(type,msg){
   el.style.color=type==='success'?'#0F6E56':'#A32D2D';
   el.textContent=msg;
   setTimeout(function(){el.style.display='none';},4000);
+}
+
+/* ── DIARY ── */
+var diaryData=load('ds_diary',{});
+var diarySaveTimer=null;
+function getDiaryKey(){return fmtKey(recCalYear,recCalMonth,recCalSelDay);}
+function renderDiary(){
+  var ta=document.getElementById('diary-textarea');if(!ta)return;
+  var key=getDiaryKey();
+  ta.value=diaryData[key]||'';
+}
+function onDiaryInput(){
+  if(diarySaveTimer)clearTimeout(diarySaveTimer);
+  diarySaveTimer=setTimeout(saveDiary,500);
+}
+function saveDiary(){
+  var ta=document.getElementById('diary-textarea');if(!ta)return;
+  var key=getDiaryKey();
+  var val=ta.value.trim();
+  if(val){diaryData[key]=val;}else{delete diaryData[key];}
+  save('ds_diary',diaryData);
+  var el=document.getElementById('diary-saved');
+  if(el){el.classList.add('show');setTimeout(function(){el.classList.remove('show');},1500);}
 }
 
 /* ── INIT ── */
