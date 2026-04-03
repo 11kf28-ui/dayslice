@@ -247,7 +247,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:-apple-
           <div class="pomo-inline-item"><label>長い休憩</label><input type="number" id="h-set-long" min="1" max="60" onchange="savePomoFromHome()"/></div>
         </div>
       </div>
-      <div style="width:100%;" id="mini-timeline"></div>
     </div>
   </div>
 
@@ -685,37 +684,7 @@ function startElapsedTicker(){
   },1000);
 }
 function renderHome(){
-  var key=todayKey();var dayB=getDayBlocks(key);
-  var container=document.getElementById('mini-timeline');
   var pw=document.getElementById('pomo-card-wrap');if(pw)pw.style.display=appSettings.showPomo?'block':'none';
-  if(dayB.length===0){container.innerHTML='';return;}
-  var last=dayB[dayB.length-1];
-  var lastColor=getBlockColor(last);var lastName=getBlockName(last);
-  var lastIdx=dayB.length-1;
-  var activeHtml='<div class="mt-title">\u4eca\u65e5\u306e\u30bf\u30a4\u30e0\u30e9\u30a4\u30f3</div>';
-  activeHtml+='<div class="mt-item" style="background:var(--bg2);border-radius:var(--r);padding:12px 14px;border:0.5px solid var(--border);margin-bottom:8px;">';
-  activeHtml+='<div class="mt-dot" style="background:'+lastColor+';width:13px;height:13px;"></div>';
-  activeHtml+='<div class="mt-item-info">';
-  activeHtml+='<div class="mt-item-name">'+lastName+' <span style="font-size:10px;font-weight:600;color:#1D9E75;background:#E1F5EE;padding:2px 7px;border-radius:20px;margin-left:4px;">\u9032\u884c\u4e2d</span></div>';
-  activeHtml+='<div class="mt-item-time">'+tsToHHMM(last.ts)+' \u301c</div>';
-  activeHtml+='<div id="active-elapsed" style="font-size:26px;font-weight:500;color:var(--accent);margin-top:4px;font-variant-numeric:tabular-nums;">'+msToDur(Math.max(0,Date.now()-last.ts))+'</div>';
-  activeHtml+='</div>';
-  activeHtml+='<button class="mt-edit" onclick="openEdit(\''+key+'\','+lastIdx+')">編集</button>';
-  activeHtml+='</div>';
-  startElapsedTicker();
-  dayB.slice(0,-1).slice().reverse().slice(0,7).forEach(function(b){
-    var idx=dayB.indexOf(b);var color=getBlockColor(b);var name=getBlockName(b);
-    var nextB=dayB[idx+1];var endStr=nextB?tsToHHMM(nextB.ts):'';var dur=nextB?msToDurShort(nextB.ts-b.ts):'';
-    var memo=b.memo?' \u00b7 '+b.memo:'';
-    activeHtml+='<div class="mt-item">';
-    activeHtml+='<div class="mt-dot" style="background:'+color+'"></div>';
-    activeHtml+='<div class="mt-item-info"><div class="mt-item-name">'+name+'</div>';
-    activeHtml+='<div class="mt-item-time">'+tsToHHMM(b.ts)+' \u301c '+endStr+memo+'</div></div>';
-    activeHtml+='<div class="mt-item-dur">'+dur+'</div>';
-    activeHtml+='<button class="mt-edit" onclick="openEdit(\''+key+'\','+idx+')">編集</button>';
-    activeHtml+='</div>';
-  });
-  container.innerHTML=activeHtml;
 }
 function togglePomoInlineSettings(){var el=document.getElementById('pomo-inline-settings');var show=el.style.display==='none';el.style.display=show?'flex':'none';if(show){document.getElementById('h-set-work').value=pomoCfg.work;document.getElementById('h-set-short').value=pomoCfg.short;document.getElementById('h-set-long').value=pomoCfg.long;}}
 function savePomoFromHome(){pomoCfg={work:+document.getElementById('h-set-work').value||25,short:+document.getElementById('h-set-short').value||5,long:+document.getElementById('h-set-long').value||15};save('ds_pomo',pomoCfg);if(!pomo.running){pomo.remaining=(pomo.mode==='work'?pomoCfg.work:pomo.mode==='short'?pomoCfg.short:pomoCfg.long)*60;renderPomo();}document.getElementById('set-work').value=pomoCfg.work;document.getElementById('set-short').value=pomoCfg.short;document.getElementById('set-long').value=pomoCfg.long;}
@@ -1115,7 +1084,7 @@ function initClockEvents(){
         });
         save('ds_blocks',blocks);
       }
-      clockDragging=null;drawClockChart();renderSubTab();if(document.getElementById('mini-timeline'))renderHome();return;
+      clockDragging=null;drawClockChart();renderSubTab();return;
     }
     if(clockIsLongPress){clockIsLongPress=false;return;}
     var p=getPos(e);if(!p)return;
